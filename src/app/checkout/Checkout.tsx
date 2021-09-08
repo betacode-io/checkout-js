@@ -1,3 +1,6 @@
+/* eslint-disable react/no-unused-state */
+/* eslint-disable @typescript-eslint/tslint/config */
+/* eslint-disable react/jsx-no-bind */
 import { Address, Cart, CartChangedError, CheckoutParams, CheckoutSelectors, Consignment, EmbeddedCheckoutMessenger, EmbeddedCheckoutMessengerOptions, FlashMessage, Promotion, RequestOptions, StepTracker } from '@bigcommerce/checkout-sdk';
 import classNames from 'classnames';
 import { find, findIndex } from 'lodash';
@@ -13,7 +16,10 @@ import { withLanguage, TranslatedString, WithLanguageProps } from '../locale';
 import { PromotionBannerList } from '../promotion';
 import { hasSelectedShippingOptions, isUsingMultiShipping, StaticConsignment } from '../shipping';
 import { ShippingOptionExpiredError } from '../shipping/shippingOption';
+import { Button } from '../ui/button';
+import { Fieldset, Label, TextInput } from '../ui/form';
 import { LazyContainer, LoadingNotification, LoadingOverlay } from '../ui/loading';
+import { Modal, ModalHeader } from '../ui/modal';
 import { MobileView } from '../ui/responsive';
 
 import mapToCheckoutProps from './mapToCheckoutProps';
@@ -75,6 +81,11 @@ export interface CheckoutState {
     isCartEmpty: boolean;
     isRedirecting: boolean;
     hasSelectedShippingOptions: boolean;
+    openRestrictedModal: boolean;
+    quoteType: string;
+    message: string;
+    completeCustomizedCart: boolean,
+    public_url: string;
 }
 
 export interface WithCheckoutProps {
@@ -97,6 +108,14 @@ export interface WithCheckoutProps {
     subscribeToConsignments(subscriber: (state: CheckoutSelectors) => void): () => void;
 }
 
+
+export interface ParamOrder {
+    checkoutId: string;
+    public_url: string;
+    quoteType: string;
+    message: string;
+}
+
 class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguageProps, CheckoutState> {
     stepTracker: StepTracker | undefined;
 
@@ -106,6 +125,11 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         isRedirecting: false,
         isMultiShippingMode: false,
         hasSelectedShippingOptions: false,
+        openRestrictedModal: true,
+        quoteType: 'screen',
+        message: '',
+        completeCustomizedCart: false,
+        public_url: ''
     };
 
     private embeddedMessenger?: EmbeddedCheckoutMessenger;
@@ -183,8 +207,73 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         }
     }
 
+    onSubmitForm = async () => {
+        const {checkoutId} = this.props
+        const {public_url, quoteType, message } = this.state
+        console.log(this.props)
+        // eslint-disable-next-line react/destructuring-assignment
+        console.log(this.state)
+        // eslint-disable-next-line react/destructuring-assignment
+        console.log(this.state.public_url)
+        const body: any ={
+            checkoutId: checkoutId || '' ,
+            public_url: public_url || '' ,
+            quoteType: quoteType || '',
+            message: message || ''
+        }
+        console.log(JSON.stringify(body))
+        await fetch("http://localhost:3000/api/v1/orders/checkout", {
+            method: 'POST', 
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              },
+            body: JSON.stringify(body)
+        })
+        .then((result) => {
+            console.log(result)
+            this.setState({completeCustomizedCart: true})
+        })
+
+      };
+
+    onChangeFile = async (selectorFiles: any) => {
+        console.log(selectorFiles.target.files[0]);
+        const file = selectorFiles.target.files[0]
+        let status: number | null = null
+        await fetch(`http://localhost:3000/api/v1/attachments/presigned_url?filename=${file.name}`)
+        .then(res => {
+            status = res.status
+            return res.json()})
+        .then(
+            async (result: any) => {
+                console.log(status)
+                console.log(result.presigned_url)
+                console.log(result.public_url)
+                const public_url = result.public_url
+                if(status === 200){
+                    
+                    // Create an object of formData
+                    const formData = new FormData();
+                    
+                    // Update the formData object
+                    formData.append(
+                        "myFile",
+                        file,
+                        file.name
+                    );
+                    await fetch(result.presigned_url, {method: 'PUT', body: file})
+                    .then((result) => {
+                        this.setState({public_url: public_url})
+                        console.log(result.status)
+                    })
+                }
+              }
+        )
+    }
+
     render(): ReactNode {
-        const { error } = this.state;
+        const { error, openRestrictedModal, completeCustomizedCart } = this.state;
         let errorModal = null;
 
         if (error) {
@@ -198,8 +287,38 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         return <>
             <div className={ classNames({ 'is-embedded': isEmbedded() }) }>
                 <div className="layout optimizedCheckout-contentPrimary">
-                    { this.renderContent() }
+                    { completeCustomizedCart ? 
+                    <div style={ {marginTop: 30 + 'px', fontSize: 30 + 'px'} }>
+                    Thanks for requesting the quotation. Your info have been saved. Our internal team will contact you later. Thank you.
+                    </div>
+                    :
+
+                    this.renderContent() }
                 </div>
+                <Modal
+                    additionalModalClassName="modal--error"
+                            // footer={ this.renderFooter() }
+                    header={ this.renderHeader() }
+                    isOpen={ openRestrictedModal }
+                >
+                            <div>
+                                One or more products in your cart must be customized with embroidery or screen printing. This is required on Nike products. Please complete the quote request below for a free, no obligation price. You may also call or email for additional details.
+                            </div>
+                            <Button
+                                // disabled={ isLoading }
+                                id="checkout-save-address"
+                                // variant={ ButtonVariant.Primary }
+                                // eslint-disable-next-line react/jsx-no-bind
+                                onClick = { () => this.setState({openRestrictedModal: !openRestrictedModal}) }
+                                style={ {
+                                    float: 'right',
+                                    marginTop: 20 + 'px',
+                                    marginBottom: 20 + 'px',
+                                } }
+                            >
+                            Got It
+                            </Button>
+                        </Modal>
                 { errorModal }
             </div>
 
@@ -386,11 +505,34 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         );
     }
 
+    private renderHeader(): ReactNode {
+        // const {
+        //     error,
+        //     title = error && isCustomError(error) && error.title,
+        // } = this.props;
+
+        return (
+            <ModalHeader>
+                { /* <IconError additionalClassName="icon--error modal-header-icon" size={ IconSize.Small } /> */ }
+                { /* { title || <TranslatedString id="common.error_heading" /> } */ }
+                { 'Restricted Brands' }
+            </ModalHeader>
+        );
+    }
+
     private renderPaymentStep(step: CheckoutStepStatus): ReactNode {
         const {
             consignments,
             cart,
         } = this.props;
+        const showPayment = false;
+        const {quoteType} = this.state;
+        console.log(quoteType);
+        // const onChangeQuoteType(event: React.FormEvent<HTMLSelectElement>) => {
+
+        // }
+
+
 
         return (
             <CheckoutStep
@@ -401,6 +543,7 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
                 onExpanded={ this.handleExpanded }
             >
                 <LazyContainer>
+                    { showPayment ?
                     <Payment
                         checkEmbeddedSupport={ this.checkEmbeddedSupport }
                         isEmbedded={ isEmbedded() }
@@ -412,6 +555,108 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
                         onSubmitError={ this.handleError }
                         onUnhandledError={ this.handleUnhandledError }
                     />
+
+                    :
+                    <Fieldset
+                        additionalClassName="creditCardFieldset"
+                    >
+                        <div className="" style={ {padding: 20 + 'px'} }>
+                            <div style={ {marginBottom: 20 + 'px'} }>
+                                <Label>
+                                    Type of quote
+                                </Label>
+                                <div style={ {display:' flex', alignItems: 'center'} }>
+                                    <input 
+                                        checked={ quoteType === 'screen' } 
+                                        // className="form-radio optimizedCheckout-form-radio" 
+                                        name="Screen Printing" 
+                                        onChange = { ()=> {this.setState({quoteType: 'screen'})} }
+                                        style={ {marginRight: '10px'} } 
+                                        type="radio"
+                                        value="screen"
+                                    />
+                                    <label 
+                                        className=""
+                                        onClick = { ()=> {this.setState({quoteType: 'screen'})} }
+                                    >
+                                        Screen Printing
+                                    </label>
+                                </div>
+                                <div style={ {display:' flex', alignItems: 'center'} }>
+                                    <input 
+                                        checked={ quoteType === 'embroidery' } 
+                                        // className="form-radio optimizedCheckout-form-radio" 
+                                        name="embroidery" 
+                                        onChange = { ()=> {this.setState({quoteType: 'embroidery'})} }
+                                        style={ {marginRight: '10px'} } 
+                                        type="radio" 
+                                        value="embroidery"
+                                    />
+                                    <label
+                                        className=""
+                                        onClick = { ()=> {this.setState({quoteType: 'embroidery'})} }
+                                    >
+                                    Embroidery
+                                    </label>
+                                </div>
+                                <div style={ {display:' flex', alignItems: 'center'} }>
+                                    <input 
+                                        checked={ quoteType === 'unsure' } 
+                                        // className="form-radio optimizedCheckout-form-radio" 
+                                        name="unsure" 
+                                        onChange = { ()=> {this.setState({quoteType: 'unsure'})} }
+                                        style={ {marginRight: '10px'} } 
+                                        type="radio" 
+                                        value="unsure"
+                                    />
+                                    <label
+                                        className=""
+                                        onClick = { ()=> {this.setState({quoteType: 'unsure'})} }
+                                    >
+                                    Unsure
+                                    </label>
+                                </div>
+                            </div>
+                            <div style={ {marginBottom: 20 + 'px'} }>
+                                <Label>
+                                    Artwork file
+                                </Label>
+                                <input
+                                    onChange={ this.onChangeFile }
+                                    type="file"
+                                />
+                            </div>
+                            <div style={ {marginBottom: 20 + 'px'} }>
+                                <Label>
+                                    Message
+                                </Label>
+                                <TextInput
+                                    // { ...props.field }
+                                    // autoComplete={ props.field.name }
+                                    // id={ props.field.name }
+                                    onChange = { (e) => {this.setState({message: e.target.value})} }
+                                    type="text"
+                                />
+                            </div>
+                            <div style={ {marginBottom: 20 + 'px'} }>
+                            <Button
+                                // disabled={ isLoading }
+                                id="checkout-save-address"
+                                // variant={ ButtonVariant.Primary }
+                                // eslint-disable-next-line react/jsx-no-bind
+                                // onClick = { () => this.setState({openRestrictedModal: !openRestrictedModal}) }
+                                onClick = { ()=> this.onSubmitForm() }
+                                style={ {
+                                    float: 'right',
+                                } }
+                            >
+                                Submit
+                            </Button>
+                            </div>
+
+                        </div>
+
+                    </Fieldset> }
                 </LazyContainer>
             </CheckoutStep>
         );
