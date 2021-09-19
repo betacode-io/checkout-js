@@ -209,9 +209,14 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
                     'Content-Type': 'application/json'
                   }
             })
+            .then(res => {
+                return res.json()})
             .then((result) => {
-                console.log(cart)
-                console.log(result)
+                const brands = cart?.lineItems?.physicalItems?.map(e => e.brand)
+                const restricted_brands = result?.body?.data
+                const exist_brand_in_cart = brands?.some(r => restricted_brands?.includes(r))
+                console.log(exist_brand_in_cart)
+                console.log(result.body)
                 this.setState({openRestrictedModal: true})
             })
             
