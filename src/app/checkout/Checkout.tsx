@@ -202,6 +202,19 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
             } else {
                 this.handleReady();
             }
+            await fetch("https://staging-orders.outletshirts.com/api/v1/restricted_brands", {
+                method: 'GET', 
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                  }
+            })
+            .then((result) => {
+                console.log(cart)
+                console.log(result)
+                this.setState({openRestrictedModal: true})
+            })
+            
         } catch (error) {
             this.handleUnhandledError(error);
         }
@@ -222,7 +235,7 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
             message: message || ''
         }
         console.log(JSON.stringify(body))
-        await fetch("http://localhost:3000/api/v1/orders/checkout", {
+        await fetch("https://staging-orders.outletshirts.com/api/v1/orders/checkout", {
             method: 'POST', 
             headers: {
                 'Accept': 'application/json',
@@ -241,7 +254,7 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         console.log(selectorFiles.target.files[0]);
         const file = selectorFiles.target.files[0]
         let status: number | null = null
-        await fetch(`http://localhost:3000/api/v1/attachments/presigned_url?filename=${file.name}`)
+        await fetch(`https://staging-orders.outletshirts.com/api/v1/attachments/presigned_url?filename=${file.name}`)
         .then(res => {
             status = res.status
             return res.json()})
