@@ -546,8 +546,10 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
             consignments,
             cart,
         } = this.props;
-        const showPayment = false;
-        const {quoteType} = this.state;
+        let showPaymentCustom = false;
+        
+        const {quoteType, openRestrictedModal} = this.state;
+        showPaymentCustom = openRestrictedModal
         console.log(quoteType);
         // const onChangeQuoteType(event: React.FormEvent<HTMLSelectElement>) => {
 
@@ -564,20 +566,7 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
                 onExpanded={ this.handleExpanded }
             >
                 <LazyContainer>
-                    { showPayment ?
-                    <Payment
-                        checkEmbeddedSupport={ this.checkEmbeddedSupport }
-                        isEmbedded={ isEmbedded() }
-                        isUsingMultiShipping={ cart && consignments ? isUsingMultiShipping(consignments, cart.lineItems) : false }
-                        onCartChangedError={ this.handleCartChangedError }
-                        onFinalize={ this.navigateToOrderConfirmation }
-                        onReady={ this.handleReady }
-                        onSubmit={ this.navigateToOrderConfirmation }
-                        onSubmitError={ this.handleError }
-                        onUnhandledError={ this.handleUnhandledError }
-                    />
-
-                    :
+                    { showPaymentCustom ?
                     <Fieldset
                         additionalClassName="creditCardFieldset"
                     >
@@ -677,7 +666,19 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
 
                         </div>
 
-                    </Fieldset> }
+                    </Fieldset> 
+                    :
+                    <Payment
+                        checkEmbeddedSupport={ this.checkEmbeddedSupport }
+                        isEmbedded={ isEmbedded() }
+                        isUsingMultiShipping={ cart && consignments ? isUsingMultiShipping(consignments, cart.lineItems) : false }
+                        onCartChangedError={ this.handleCartChangedError }
+                        onFinalize={ this.navigateToOrderConfirmation }
+                        onReady={ this.handleReady }
+                        onSubmit={ this.navigateToOrderConfirmation }
+                        onSubmitError={ this.handleError }
+                        onUnhandledError={ this.handleUnhandledError }
+                    /> }
                 </LazyContainer>
             </CheckoutStep>
         );
