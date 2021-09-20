@@ -213,7 +213,7 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
                 return res.json()})
             .then((result) => {
                 const brands = cart?.lineItems?.physicalItems?.map(e => e.brand)
-                const restricted_brands = result?.body?.data?.map((e: { name: any; }) => e.name)
+                const restricted_brands = result?.data?.map((e: any) => e.name)
                 const exist_brand_in_cart = brands?.some(r => restricted_brands?.includes(r))
                 console.log(exist_brand_in_cart)
                 console.log(restricted_brands)
