@@ -84,8 +84,9 @@ export interface CheckoutState {
     openRestrictedModal: boolean;
     quoteType: string;
     message: string;
-    completeCustomizedCart: boolean,
+    completeCustomizedCart: boolean;
     public_url: string;
+    customizeCheckoutForm: boolean;
 }
 
 export interface WithCheckoutProps {
@@ -129,7 +130,8 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         quoteType: 'screen',
         message: '',
         completeCustomizedCart: false,
-        public_url: ''
+        public_url: '',
+        customizeCheckoutForm: false
     };
 
     private embeddedMessenger?: EmbeddedCheckoutMessenger;
@@ -219,7 +221,7 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
                 console.log(restricted_brands)
                 console.log(brands)
                 if(exist_brand_in_cart){
-                    this.setState({openRestrictedModal: true})
+                    this.setState({openRestrictedModal: true}, () => {this.setState({customizeCheckoutForm: true})})
                 }
             })
             
@@ -548,8 +550,8 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         } = this.props;
         let showPaymentCustom = false;
         
-        const {quoteType, openRestrictedModal} = this.state;
-        showPaymentCustom = openRestrictedModal
+        const {quoteType, customizeCheckoutForm} = this.state;
+        showPaymentCustom = customizeCheckoutForm
         console.log(quoteType);
         // const onChangeQuoteType(event: React.FormEvent<HTMLSelectElement>) => {
 
