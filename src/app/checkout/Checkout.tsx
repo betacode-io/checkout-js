@@ -216,7 +216,8 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
                 const restricted_brands = result?.body?.data?.map((e: { name: any; }) => e.name)
                 const exist_brand_in_cart = brands?.some(r => restricted_brands?.includes(r))
                 console.log(exist_brand_in_cart)
-                console.log(result)
+                console.log(restricted_brands)
+                console.log(brands)
                 this.setState({openRestrictedModal: true})
             })
             
