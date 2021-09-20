@@ -125,7 +125,7 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
         isRedirecting: false,
         isMultiShippingMode: false,
         hasSelectedShippingOptions: false,
-        openRestrictedModal: true,
+        openRestrictedModal: false,
         quoteType: 'screen',
         message: '',
         completeCustomizedCart: false,
