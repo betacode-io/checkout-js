@@ -218,7 +218,9 @@ class Checkout extends Component<CheckoutProps & WithCheckoutProps & WithLanguag
                 console.log(exist_brand_in_cart)
                 console.log(restricted_brands)
                 console.log(brands)
-                this.setState({openRestrictedModal: true})
+                if(exist_brand_in_cart){
+                    this.setState({openRestrictedModal: true})
+                }
             })
             
         } catch (error) {
